@@ -1,0 +1,46 @@
+.mainbody{
+    display: flex;
+    justify-content:center;
+    align-items: center;
+    height: 100vh;
+}
+
+.innercard{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    width: 400px;
+    height: 500px;
+    border-radius: 10px;
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.3);
+    background-color: rgb(255, 252, 252);
+}
+.tasklistborder{
+    display:flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 3px solid black;
+    border-radius: 10px;
+    width: 80%;
+    height :90%;
+}
+.addtask{
+    margin-bottom: auto;
+    margin-top: 10px;
+}
+#taskadder{
+
+color: white;
+background-color: rgb(59, 57, 57);
+}
+#taskinput{
+    width: 200px;
+    height: 30px;
+    border-radius: 5px;
+    border: 2px solid black;
+    margin-right: 10px;
+    margin-top: ;
+}
