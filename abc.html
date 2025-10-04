@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Insertion Sort Cards</title>
+  <style>
+    /* 🌌 Background Styling */
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      font-family: 'Poppins', sans-serif;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    h1 {
+      position: absolute;
+      top: 20px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    }
+
+    /* 🌈 Container for cards */
+    .container {
+      display: flex;
+      gap: 25px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    /* 🃏 Card design */
+    .card {
+      width: 110px;
+      height: 160px;
+      border-radius: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 2.3rem;
+      font-weight: 700;
+      cursor: grab;
+      transition: all 0.3s ease;
+      user-select: none;
+      color: #fff;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      position: relative;
+    }
+
+    /* 🎨 Random colorful gradients for cards */
+    .card:nth-child(1) { background: linear-gradient(135deg, #ff416c, #ff4b2b); }
+    .card:nth-child(2) { background: linear-gradient(135deg, #56ab2f, #a8e063); }
+    .card:nth-child(3) { background: linear-gradient(135deg, #36d1dc, #5b86e5); }
+    .card:nth-child(4) { background: linear-gradient(135deg, #ff9966, #ff5e62); }
+    .card:nth-child(5) { background: linear-gradient(135deg, #7f00ff, #e100ff); }
+    .card:nth-child(6) { background: linear-gradient(135deg, #f7971e, #ffd200); }
+
+    .card:hover {
+      transform: scale(1.15) rotate(3deg);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    }
+
+    /* ✨ While dragging */
+    .dragging {
+      opacity: 0.6;
+      transform: scale(1.1);
+      box-shadow: 0 20px 40px rgba(255,255,255,0.3);
+    }
+
+    /* 💫 Floating animation (just for beauty) */
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+      100% { transform: translateY(0px); }
+    }
+    .card {
+      animation: float 3s ease-in-out infinite;
+    }
+    .card:nth-child(even) {
+      animation-delay: 0.5s;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎯 Drag & Swap the Cards</h1>
+
+  <div class="container" id="cardContainer"></div>
+
+  <script>
+    const container = document.getElementById("cardContainer");
+    const numbers = [9, 3, 6, 1, 5, 2]; // Initial values
+
+    // Generate cards dynamically
+    numbers.forEach(num => {
+      const card = document.createElement("div");
+      card.classList.add("card");
+      card.textContent = num;
+      card.draggable = true;
+      container.appendChild(card);
+    });
+
+    let dragSrc = null;
+
+    const cards = document.querySelectorAll(".card");
+    cards.forEach(card => {
+      card.addEventListener("dragstart", dragStart);
+      card.addEventListener("dragover", dragOver);
+      card.addEventListener("drop", drop);
+      card.addEventListener("dragend", dragEnd);
+    });
+
+    function dragStart(e) {
+      dragSrc = this;
+      this.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+    }
+
+    function dragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+    }
+
+    function drop(e) {
+      e.preventDefault();
+      if (dragSrc !== this) {
+        const temp = dragSrc.textContent;
+        dragSrc.textContent = this.textContent;
+        this.textContent = temp;
+      }
+    }
+
+    function dragEnd() {
+      this.classList.remove("dragging");
+    }
+  </script>
+</body>
+</html>
