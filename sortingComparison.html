@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sort Visualizer — 30 Numbers</title>
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card:#0b1220;
+      --accent:#7c3aed;
+      --muted:#94a3b8;
+      --bar-gap:6px;
+      --bar-radius:6px;
+    }
+    *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#071022);color:#e6eef8}
+    .wrap{max-width:1100px;margin:24px auto;padding:20px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,0.6)}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    header h1{font-size:20px;margin:0}
+    .controls{display:flex;gap:10px;align-items:center}
+    button{background:var(--card);border:1px solid rgba(255,255,255,0.04);padding:8px 12px;border-radius:8px;color:inherit;cursor:pointer}
+    button:hover{transform:translateY(-1px)}
+    .btn-primary{background:linear-gradient(90deg,var(--accent),#06b6d4);border:none}
+    .top-row{display:flex;gap:16px;align-items:center;margin-top:14px}
+    .stats{display:flex;gap:12px;align-items:center;color:var(--muted);font-size:13px}
+    .board{height:420px;margin-top:18px;padding:18px;background:linear-gradient(180deg,rgba(255,255,255,0.01),rgba(255,255,255,0.005));border-radius:10px;display:flex;align-items:flex-end}
+    .bars{display:flex;align-items:flex-end;height:100%;width:100%;gap:var(--bar-gap)}
+    .bar{flex:1 1 calc((100% - (29 * var(--bar-gap))) / 30);display:flex;align-items:flex-end;justify-content:center;position:relative;border-radius:var(--bar-radius);min-width:6px}
+    .bar .value{position:absolute;bottom:6px;font-weight:600;font-size:11px;color:rgba(255,255,255,0.95);text-shadow:0 1px 0 rgba(0,0,0,0.6)}
+    .bar .label{position:absolute;top:6px;font-size:12px;color:rgba(255,255,255,0.85);transform:translateY(-100%)}
+    /* color states */
+    .bar.default{background:linear-gradient(180deg,#1f2937,#0b1220)}
+    .bar.sorted{background:linear-gradient(180deg,#10b981,#065f46)}
+    .bar.current{background:linear-gradient(180deg,#f59e0b,#b45309)}
+    .bar.comparing{background:linear-gradient(180deg,#ef4444,#7f1d1d)}
+    .bar.key{background:linear-gradient(180deg,#7c3aed,#4c1d95)}
+    footer{margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;color:var(--muted);font-size:13px}
+    .legend{display:flex;gap:10px;align-items:center}
+    .legend .item{display:flex;gap:6px;align-items:center}
+    .swatch{width:14px;height:14px;border-radius:4px;border:1px solid rgba(255,255,255,0.06)}
+    select{background:var(--card);border:1px solid rgba(255,255,255,0.04);padding:6px 10px;border-radius:8px;color:inherit}
+    input[type=range]{width:180px}
+    @media (max-width:720px){
+      .bar .value{display:none}
+      header{flex-direction:column;align-items:flex-start}
+      .controls{flex-wrap:wrap}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Sort Visualizer — 30 Numbers</h1>
+        <div class="top-row">
+          <div class="stats"><strong id="comparisons">Comparisons: 0</strong></div>
+          <div class="stats"><strong id="swaps">Moves: 0</strong></div>
+          <div class="stats">Array size: <strong>30</strong></div>
+        </div>
+      </div>
+      <div class="controls">
+        <button id="shuffle">Shuffle / New Array</button>
+        <label>Algorithm: <select id="algorithm"><option value="insertion">Insertion Sort</option><option value="selection">Selection Sort</option><option value="bubble">Bubble Sort</option><option value="shell">Shell Sort</option></select></label>
+        <button id="start" class="btn-primary">Start</button>
+        <button id="pause">Pause</button>
+        <button id="step">Step</button>
+        <label>Speed <input id="speed" type="range" min="10" max="1000" value="120"></label>
+      </div>
+    </header>
+
+    <div class="board" aria-hidden="false">
+      <div id="bars" class="bars"></div>
+    </div>
+
+    <footer>
+      <div class="legend">
+        <div class="item"><div class="swatch" style="background:linear-gradient(180deg,#1f2937,#0b1220)"></div> Unsorted</div>
+        <div class="item"><div class="swatch" style="background:linear-gradient(180deg,#7c3aed,#4c1d95)"></div> Key / Current</div>
+        <div class="item"><div class="swatch" style="background:linear-gradient(180deg,#ef4444,#7f1d1d)"></div> Comparing</div>
+        <div class="item"><div class="swatch" style="background:linear-gradient(180deg,#10b981,#065f46)"></div> Sorted/Placed</div>
+      </div>
+      <div>Tip: Press <strong>Start</strong> to animate. Use <strong>Step</strong> to move one operation at a time. Press <strong>Space</strong> to Start/Pause.</div>
+    </footer>
+  </div>
+
+  <script>
+    // ====== Config & State ======
+    const N = 30; // array size
+    let arr = [];
+    const barsContainer = document.getElementById('bars');
+    const comparisonsEl = document.getElementById('comparisons');
+    const swapsEl = document.getElementById('swaps');
+    const algoSelect = document.getElementById('algorithm');
+
+    let comparisons = 0;
+    let swaps = 0;
+
+    const speedInput = document.getElementById('speed');
+    function getDelay(){ return parseInt(speedInput.value); }
+
+    let running = false;
+    let paused = false;
+    let stepMode = false;
+    let stepResolve = null;
+
+    // ====== Utilities ======
+    function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min }
+    function sleep(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
+    function timedWait(ms){
+      if(stepMode){
+        return new Promise(resolve => { stepResolve = resolve; });
+      } else {
+        return new Promise(async resolve => {
+          let remaining = ms;
+          while(remaining>0){
+            if(!running) return resolve();
+            if(paused){ await sleep(50); continue; }
+            const t = Math.min(50, remaining);
+            await sleep(t);
+            remaining -= t;
+          }
+          resolve();
+        });
+      }
+    }
+
+    // ====== Rendering ======
+    function generateArray(){
+      arr = Array.from({length:N},()=>randInt(5,100));
+      comparisons = 0; swaps = 0;
+      updateStats();
+      render();
+    }
+
+    function updateStats(){
+      comparisonsEl.textContent = 'Comparisons: ' + comparisons;
+      swapsEl.textContent = 'Moves: ' + swaps;
+    }
+
+    function render(highlight={}){
+      // highlight keys: keyIndex, comparingIndex, sortedUpto (inclusive), swapIndex
+      barsContainer.innerHTML = '';
+      const maxVal = Math.max(...arr);
+      for(let i=0;i<arr.length;i++){
+        const v = arr[i];
+        const bar = document.createElement('div');
+        bar.className = 'bar default';
+        // apply states
+        if(typeof highlight.sortedUpto === 'number' && i <= highlight.sortedUpto) bar.className = 'bar sorted';
+        if(i === highlight.comparingIndex) bar.className = 'bar comparing';
+        if(i === highlight.keyIndex) bar.className = 'bar key';
+        if(i === highlight.swapIndex) bar.className = 'bar current';
+
+        // height proportional
+        const pct = (v / maxVal) * 100;
+        bar.style.height = pct + '%';
+
+        // label value
+        const val = document.createElement('div');
+        val.className = 'value';
+        val.textContent = v;
+        bar.appendChild(val);
+
+        // small index label on top (optional)
+        const lab = document.createElement('div');
+        lab.className = 'label';
+        lab.textContent = i;
+        bar.appendChild(lab);
+
+        barsContainer.appendChild(bar);
+      }
+    }
+
+    // ====== Controls ======
+    document.getElementById('shuffle').addEventListener('click', ()=>{
+      stop();
+      generateArray();
+    });
+
+    document.getElementById('start').addEventListener('click', async ()=>{
+      if(running) return;
+      running = true; paused = false; stepMode = false;
+      await runSelectedAlgorithm();
+      running = false;
+    });
+
+    document.getElementById('pause').addEventListener('click', ()=>{
+      if(!running) return;
+      paused = !paused;
+      document.getElementById('pause').textContent = paused? 'Resume' : 'Pause';
+    });
+
+    document.getElementById('step').addEventListener('click', async ()=>{
+      if(!running){
+        // start in step mode
+        running = true; paused = false; stepMode = true;
+        runSelectedAlgorithm().then(()=>{ running=false; stepMode=false; });
+        return;
+      }
+      // if running in step mode, trigger one step
+      if(stepResolve) { stepResolve(); stepResolve = null; }
+    });
+
+    function stop(){
+      running = false; paused = false; stepMode = false;
+      if(stepResolve){ stepResolve(); stepResolve = null; }
+      document.getElementById('pause').textContent = 'Pause';
+    }
+
+    // ====== Algorithms ======
+    async function runSelectedAlgorithm(){
+      const alg = algoSelect.value;
+      if(alg === 'insertion') await insertionSort();
+      else if(alg === 'selection') await selectionSort();
+      else if(alg === 'bubble') await bubbleSort();
+      else if(alg === 'shell') await shellSort();
+      // mark finished
+      render({sortedUpto:arr.length-1});
+    }
+
+    // Insertion Sort (as provided earlier)
+    async function insertionSort(){
+      for(let i=1;i<arr.length;i++){
+        if(!running) return;
+        let key = arr[i];
+        let j = i - 1;
+        render({keyIndex:i, comparingIndex:null, sortedUpto:i-1});
+        await timedWait(getDelay());
+
+        while(j >= 0 && arr[j] > key){
+          if(!running) return;
+          comparisons++; swaps++;
+          render({keyIndex:i, comparingIndex:j, swapIndex:j+1, sortedUpto:i-1});
+          updateStats();
+          await timedWait(getDelay());
+
+          arr[j+1] = arr[j];
+          render({keyIndex:i, comparingIndex:j, swapIndex:j+1, sortedUpto:i-1});
+          await timedWait(getDelay());
+
+          j = j - 1;
+        }
+        if(j >= 0) comparisons++;
+        arr[j+1] = key;
+        swaps++;
+        render({keyIndex:j+1, sortedUpto:i});
+        updateStats();
+        await timedWait(getDelay());
+      }
+    }
+
+    // Selection Sort (visual similar to others)
+    async function selectionSort(){
+      for(let i=0;i<arr.length-1;i++){
+        if(!running) return;
+        let minIdx = i;
+        render({keyIndex:i, comparingIndex:null, sortedUpto:i-1});
+        await timedWait(getDelay());
+        for(let j=i+1;j<arr.length;j++){
+          if(!running) return;
+          comparisons++;
+          render({keyIndex:minIdx, comparingIndex:j, swapIndex:null, sortedUpto:i-1});
+          updateStats();
+          await timedWait(getDelay());
+          if(arr[j] < arr[minIdx]){
+            minIdx = j;
+            render({keyIndex:minIdx, comparingIndex:j, sortedUpto:i-1});
+            await timedWait(getDelay());
+          }
+        }
+        if(minIdx !== i){
+          // swap
+          [arr[i], arr[minIdx]] = [arr[minIdx], arr[i]];
+          swaps++;
+          render({swapIndex:i, keyIndex:minIdx, sortedUpto:i});
+          updateStats();
+          await timedWait(getDelay());
+        } else {
+          // mark placed
+          render({sortedUpto:i});
+          await timedWait(getDelay());
+        }
+      }
+    }
+
+    // Bubble Sort
+    async function bubbleSort(){
+      for(let i=0;i<arr.length-1;i++){
+        if(!running) return;
+        for(let j=0;j<arr.length-i-1;j++){
+          if(!running) return;
+          comparisons++;
+          render({comparingIndex:j, swapIndex:j+1, sortedUpto:arr.length-i-1});
+          updateStats();
+          await timedWait(getDelay());
+          if(arr[j] > arr[j+1]){
+            [arr[j], arr[j+1]] = [arr[j+1], arr[j]];
+            swaps++;
+            render({swapIndex:j+1, comparingIndex:j, sortedUpto:arr.length-i-1});
+            updateStats();
+            await timedWait(getDelay());
+          }
+        }
+      }
+    }
+
+    // Shell Sort (gap halving)
+    async function shellSort(){
+      let n = arr.length;
+      for(let gap=Math.floor(n/2); gap>0; gap=Math.floor(gap/2)){
+        for(let i=gap;i<n;i++){
+          if(!running) return;
+          let temp = arr[i];
+          let j = i;
+          render({keyIndex:i, comparingIndex:null, sortedUpto:i-gap-1});
+          await timedWait(getDelay());
+          while(j >= gap && arr[j-gap] > temp){
+            if(!running) return;
+            comparisons++; swaps++;
+            render({keyIndex:i, comparingIndex:j-gap, swapIndex:j, sortedUpto:null});
+            updateStats();
+            await timedWait(getDelay());
+            arr[j] = arr[j-gap];
+            render({keyIndex:i, comparingIndex:j-gap, swapIndex:j});
+            await timedWait(getDelay());
+            j -= gap;
+          }
+          if(j >= gap) comparisons++;
+          arr[j] = temp;
+          swaps++;
+          render({keyIndex:j, sortedUpto:null});
+          updateStats();
+          await timedWait(getDelay());
+        }
+      }
+    }
+
+    // ====== initial setup ======
+    generateArray();
+
+    // ====== keyboard controls ======
+    window.addEventListener('keydown', (e)=>{
+      if(e.key === ' '){
+        e.preventDefault();
+        // toggle start/pause
+        if(!running){
+          document.getElementById('start').click();
+        } else {
+          document.getElementById('pause').click();
+        }
+      }
+      if(e.key === 'p'){ document.getElementById('pause').click(); }
+      if(e.key === 's'){ document.getElementById('step').click(); }
+      if(e.key === 'r'){ document.getElementById('shuffle').click(); }
+    });
+
+    // if user clicks speed or changes while running, effect will take place next wait
+  </script>
+</body>
+</html>
